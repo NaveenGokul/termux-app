@@ -19,7 +19,7 @@ android {
     dependencies {
         implementation "androidx.appcompat:appcompat:1.8.0"
         implementation "androidx.annotation:annotation:1.11.0"
-        implementation "androidx.core:core:1.19.1"
+        implementation "androidx.core:core:1.18.0" // held at 1.18.0: 1.19.x needs compileSdk 37 + AGP 9.1 (we build with SDK 36 / AGP 8.13.2, as upstream master)
         implementation "com.google.android.material:material:1.14.0"
         // NGTerminal: guava, markwon, hiddenapibypass, commons-io held at Termux 0.118.3 versions: runtime libraries,
         // "don't break any Termux things". Only build/UI libraries above are upgraded.

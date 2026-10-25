@@ -18,7 +18,7 @@ android {
 
     dependencies {
         implementation "androidx.annotation:annotation:1.11.0"
-        implementation "androidx.core:core:1.19.1"
+        implementation "androidx.core:core:1.18.0" // held at 1.18.0: 1.19.x needs compileSdk 37 + AGP 9.1 (we build with SDK 36 / AGP 8.13.2, as upstream master)
         implementation "androidx.drawerlayout:drawerlayout:1.2.0"
         implementation "androidx.preference:preference:1.2.1"
         implementation "com.google.android.material:material:1.14.0" // NGTerminal: tab bar + settings (M3)
