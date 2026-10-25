@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- NGTerminal (M3 fork). <monochrome> enables Android 13+ themed icons (wallpaper colours). -->
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-    <background android:drawable="@android:color/black"/>
-    <foreground android:drawable="@drawable/ic_foreground"/>
+    <background android:drawable="@color/ng_launcher_background"/>
+    <foreground android:drawable="@drawable/ic_ng_foreground"/>
+    <monochrome android:drawable="@drawable/ic_ng_monochrome"/>
 </adaptive-icon>
