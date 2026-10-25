@@ -2,7 +2,9 @@ package com.termux.shared.terminal.io.extrakeys;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.LayerDrawable;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
@@ -25,6 +27,7 @@ import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
+import android.view.Gravity;
 import android.view.ViewGroup;
 import android.view.animation.OvershootInterpolator;
 import android.widget.Button;
@@ -33,6 +36,9 @@ import android.widget.PopupWindow;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
+
+import com.termux.shared.R;
 
 /**
  * A {@link View} showing extra keys (such as Escape, Ctrl, Alt) not normally available on an Android soft
@@ -399,6 +405,12 @@ public final class ExtraKeysView extends GridLayout {
                 button.setTextColor(isLatched(buttonInfo) ? mButtonActiveTextColor : mButtonTextColor);
                 button.setAllCaps(mButtonTextAllCaps);
                 button.setPadding(0, 0, 0, 0);
+                int icon = ExtraKeyIcons.iconFor(buttonInfo.getKey());
+                if (icon != 0) {
+                    button.setTag(R.id.ng_key_icon, icon);
+                    button.setText("");                                   // the icon replaces the text label
+                }
+                button.setContentDescription(buttonInfo.getKey());        // accessibility + Pixel harness lookup
                 button.setStateListAnimator(null); // drop the stock press elevation; M3 press = shape + scale
                 styleKey(button, false, isLatched(buttonInfo));
 
@@ -596,6 +608,8 @@ public final class ExtraKeysView extends GridLayout {
         button.setWidth(width);
         button.setHeight(height);
         button.setStateListAnimator(null);
+        int popupIcon = ExtraKeyIcons.iconFor(extraButton.getKey());
+        if (popupIcon != 0) { button.setTag(R.id.ng_key_icon, popupIcon); button.setText(""); }
         styleKey(button, true, false);
         mPopupWindow = new PopupWindow(this);
         mPopupWindow.setWidth(LayoutParams.WRAP_CONTENT);
@@ -623,7 +637,17 @@ public final class ExtraKeysView extends GridLayout {
         GradientDrawable shape = new GradientDrawable();
         shape.setColor(latched ? M3_KEY_LATCHED_COLOR : pressed ? mButtonActiveBackgroundColor : mButtonBackgroundColor);
         shape.setCornerRadius(dp(pressed ? M3_KEY_PRESSED_RADIUS_DP : M3_KEY_RADIUS_DP));
-        view.setBackground(shape);
+        Object tag = view.getTag(R.id.ng_key_icon);
+        if (!(tag instanceof Integer)) { view.setBackground(shape); return; }
+        Drawable icon = ContextCompat.getDrawable(getContext(), (Integer) tag);
+        if (icon == null) { view.setBackground(shape); return; }
+        icon = icon.mutate();
+        icon.setTint(latched ? mButtonActiveTextColor : mButtonTextColor);
+        LayerDrawable layers = new LayerDrawable(new Drawable[]{shape, icon});
+        int size = (int) dp(22);
+        layers.setLayerSize(1, size, size);
+        layers.setLayerGravity(1, Gravity.CENTER);
+        view.setBackground(layers);
     }
 
     /** M3 fork: whether this key is a special key (CTRL/ALT/SHIFT/FN) that is currently latched on. */
