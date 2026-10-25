@@ -18,6 +18,7 @@ public class ExtraKeyIconsTest {
         assertEquals(R.drawable.ic_ng_key_keyboard_return, ExtraKeyIcons.iconFor("CTRL j"));
         assertEquals(R.drawable.ic_ng_key_keyboard, ExtraKeyIcons.iconFor("KEYBOARD"));
         assertEquals(R.drawable.ic_ng_key_coffee, ExtraKeyIcons.iconFor("WAKELOCK"));
+        assertEquals(R.drawable.ic_ng_key_claude, ExtraKeyIcons.iconFor("CLAUDE"));
     }
     @Test public void textKeysAndUnknownKeysHaveNoIcon() {
         for (String k : new String[]{"ESC", "/", "-", "CTRL", "ALT", "DRAWER", "PGUP", "x", "", null})

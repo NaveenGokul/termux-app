@@ -19,6 +19,7 @@ public final class ExtraKeyIcons {
         ICONS.put("CTRL j", R.drawable.ic_ng_key_keyboard_return); // the user's new-line macro
         ICONS.put("KEYBOARD", R.drawable.ic_ng_key_keyboard);
         ICONS.put("WAKELOCK", R.drawable.ic_ng_key_coffee);
+        ICONS.put("CLAUDE", R.drawable.ic_ng_key_claude);
     }
     private ExtraKeyIcons() {}
 
