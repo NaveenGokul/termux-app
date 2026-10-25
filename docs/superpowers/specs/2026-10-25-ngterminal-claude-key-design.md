@@ -39,8 +39,9 @@ row 1:  CLAUDE   /   Esc   HOME   UP   END   WAKELOCK
 row 2:  TAB    Ctrl   ↵    LEFT  DOWN  RIGHT KEYBOARD
 ```
 
-- New special key name `CLAUDE`. Icon: Material Symbols Rounded **`auto_awesome`** (Google, Apache 2.0), from the
-  same source and with the same tinting as the ng.4 icons (`ic_ng_key_claude.xml`). contentDescription = key name `CLAUDE` (ExtraKeysView convention since ng.4; the Pixel harness looks keys up by it).
+- New special key name `CLAUDE`. Icon: **the Claude logo** (user, 2026-10-25: "Claude logo should be there"), path from
+  Simple Icons 16.35.0 (CC0) in Claude's own colour #D97757, not tinted (`ic_ng_key_claude.xml`, `ExtraKeyIcons.keepsOwnColor`).
+  Was: Material Symbols `auto_awesome`. contentDescription = key name `CLAUDE` (ExtraKeysView convention since ng.4; the Pixel harness looks keys up by it).
 - `ESC` moves to slot 3, and the `-` key is removed.
 - NGTerminal's built-in default (`TermuxPropertyConstants.DEFAULT_IVALUE_EXTRA_KEYS`) becomes this layout, so a
   fresh install gets it:

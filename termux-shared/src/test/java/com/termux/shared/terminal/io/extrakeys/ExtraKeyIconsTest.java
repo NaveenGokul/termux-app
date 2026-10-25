@@ -1,7 +1,9 @@
 package com.termux.shared.terminal.io.extrakeys;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.termux.shared.R;
 import org.junit.Test;
@@ -23,6 +25,11 @@ public class ExtraKeyIconsTest {
     @Test public void textKeysAndUnknownKeysHaveNoIcon() {
         for (String k : new String[]{"ESC", "/", "-", "CTRL", "ALT", "DRAWER", "PGUP", "x", "", null})
             assertEquals("key " + k, 0, ExtraKeyIcons.iconFor(k));
+    }
+    @Test public void claudeLogoKeepsItsOwnColour() {   // the user asked for the Claude logo itself, not a tinted glyph
+        assertTrue(ExtraKeyIcons.keepsOwnColor(R.drawable.ic_ng_key_claude));
+        assertFalse(ExtraKeyIcons.keepsOwnColor(R.drawable.ic_ng_key_coffee));
+        assertFalse(ExtraKeyIcons.keepsOwnColor(0));
     }
     @Test public void caseSensitiveLikeTermuxKeyNames() {
         assertNotEquals(0, ExtraKeyIcons.iconFor("UP"));

@@ -29,4 +29,9 @@ public final class ExtraKeyIcons {
         Integer id = ICONS.get(key);
         return id == null ? 0 : id;
     }
+
+    /** Brand logos keep their own colours (the Claude key); every other icon is tinted like the key's text. */
+    public static boolean keepsOwnColor(@DrawableRes int icon) {
+        return icon != 0 && icon == R.drawable.ic_ng_key_claude;
+    }
 }

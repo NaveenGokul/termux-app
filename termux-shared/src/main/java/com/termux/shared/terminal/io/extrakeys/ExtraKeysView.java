@@ -650,7 +650,7 @@ public final class ExtraKeysView extends GridLayout {
         Drawable icon = ContextCompat.getDrawable(getContext(), (Integer) tag);
         if (icon == null) { view.setBackground(shape); return; }
         icon = icon.mutate();
-        icon.setTint(latched ? mButtonActiveTextColor : mButtonTextColor);
+        if (!ExtraKeyIcons.keepsOwnColor((Integer) tag)) icon.setTint(latched ? mButtonActiveTextColor : mButtonTextColor);
         LayerDrawable layers = new LayerDrawable(new Drawable[]{shape, icon});
         int size = (int) dp(22);
         layers.setLayerSize(1, size, size);
