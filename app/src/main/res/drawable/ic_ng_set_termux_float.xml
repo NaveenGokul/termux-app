@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- NGTerminal settings icon: Pixel-style tonal circle (#B0C6FF, seed-harmonized tone 80) + glyph (tone 20). -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item><shape android:shape="oval"><solid android:color="#B0C6FF"/><size android:width="40dp" android:height="40dp"/></shape></item>
+    <item android:drawable="@drawable/ic_ng_set_glyph_termux_float" android:gravity="center" android:width="24dp" android:height="24dp"/>
+</layer-list>

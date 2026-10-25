@@ -1,30 +1,35 @@
 <PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <!-- NGTerminal rows -->
+    <!-- NGTerminal: three card groups (categories without titles); every key is unchanged -->
+    <PreferenceCategory app:key="ng_group_ngterminal" app:iconSpaceReserved="false">
     <SwitchPreferenceCompat
         app:key="ng_keep_awake"
         app:title="Keep awake"
-        app:summary="Hold Termux's wakelock so sessions keep running with the screen off"
-        app:icon="@drawable/ic_ng_coffee"
+        app:summary="Sessions keep running with the screen off"
+        app:icon="@drawable/ic_ng_set_keep_awake"
         app:persistent="false"
         app:widgetLayout="@layout/ng_preference_switch"/>
 
     <Preference
         app:key="ng_packages"
         app:title="Installed packages"
-        app:icon="@drawable/ic_ng_package_2"
+        app:icon="@drawable/ic_ng_set_packages"
         app:persistent="false"
         app:fragment="com.termux.app.ngterminal.PackagesFragment"/>
 
+    </PreferenceCategory>
+
+    <PreferenceCategory app:key="ng_group_termux" app:iconSpaceReserved="false">
     <Preference
         app:key="termux"
-        app:icon="@drawable/ic_ng_terminal"
+        app:icon="@drawable/ic_ng_set_termux"
         app:title="@string/termux_preferences_title"
         app:summary="@string/termux_preferences_summary"
         app:fragment="com.termux.app.fragments.settings.TermuxPreferencesFragment"/>
 
     <Preference
         app:key="termux_api"
+        app:icon="@drawable/ic_ng_set_termux_api"
         app:title="@string/termux_api_preferences_title"
         app:summary="@string/termux_api_preferences_summary"
         app:isPreferenceVisible="false"
@@ -32,6 +37,7 @@
 
     <Preference
         app:key="termux_float"
+        app:icon="@drawable/ic_ng_set_termux_float"
         app:title="@string/termux_float_preferences_title"
         app:summary="@string/termux_float_preferences_summary"
         app:isPreferenceVisible="false"
@@ -39,6 +45,7 @@
 
     <Preference
         app:key="termux_tasker"
+        app:icon="@drawable/ic_ng_set_termux_tasker"
         app:title="@string/termux_tasker_preferences_title"
         app:summary="@string/termux_tasker_preferences_summary"
         app:isPreferenceVisible="false"
@@ -46,14 +53,18 @@
 
     <Preference
         app:key="termux_widget"
+        app:icon="@drawable/ic_ng_set_termux_widget"
         app:title="@string/termux_widget_preferences_title"
         app:summary="@string/termux_widget_preferences_summary"
         app:isPreferenceVisible="false"
         app:fragment="com.termux.app.fragments.settings.TermuxWidgetPreferencesFragment"/>
 
+    </PreferenceCategory>
+
+    <PreferenceCategory app:key="ng_group_about" app:iconSpaceReserved="false">
     <Preference
         app:key="about"
-        app:icon="@drawable/ic_ng_info"
+        app:icon="@drawable/ic_ng_set_about"
         app:title="@string/about_preference_title"
         app:persistent="false"/>
     <!-- app:layout="@layout/preference_markdown_text" -->
@@ -63,5 +74,7 @@
         app:title="@string/donate_preference_title"
         app:persistent="false"
         app:isPreferenceVisible="false"/>
+
+    </PreferenceCategory>
 
 </PreferenceScreen>

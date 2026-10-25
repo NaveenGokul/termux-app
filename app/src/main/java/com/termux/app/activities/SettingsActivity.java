@@ -34,7 +34,18 @@ public class SettingsActivity extends AppCompatActivity {
         // NGTerminal: M3 collapsing large title
         com.google.android.material.appbar.MaterialToolbar toolbar = findViewById(R.id.ng_settings_toolbar);
         setSupportActionBar(toolbar);
-        setTitle(R.string.title_activity_termux_settings);
+        setTitle("Settings");
+        // NGTerminal: Pixel-style grouped cards on every settings page (root, stock Termux pages, packages)
+        getSupportFragmentManager().registerFragmentLifecycleCallbacks(new androidx.fragment.app.FragmentManager.FragmentLifecycleCallbacks() {
+            @Override
+            public void onFragmentViewCreated(@NonNull androidx.fragment.app.FragmentManager fm, @NonNull androidx.fragment.app.Fragment f,
+                                              @NonNull android.view.View v, Bundle savedInstanceState) {
+                if (!(f instanceof PreferenceFragmentCompat)) return;
+                PreferenceFragmentCompat pf = (PreferenceFragmentCompat) f;
+                pf.setDivider(null);
+                pf.getListView().addItemDecoration(new com.termux.app.ngterminal.PreferenceCardDecoration(SettingsActivity.this));
+            }
+        }, true);
         if (savedInstanceState == null) {
             getSupportFragmentManager()
                 .beginTransaction()
