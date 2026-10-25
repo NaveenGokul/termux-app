@@ -38,7 +38,10 @@ public class SpecialButtonState {
     /** Set {@link #isActive}. */
     public void setIsActive(boolean value) {
         isActive = value;
-        buttons.forEach(button -> button.setTextColor(value ? mExtraKeysView.getButtonActiveTextColor() : mExtraKeysView.getButtonTextColor()));
+        buttons.forEach(button -> {
+            button.setTextColor(value ? mExtraKeysView.getButtonActiveTextColor() : mExtraKeysView.getButtonTextColor());
+            mExtraKeysView.styleKey(button, false, value); // M3 fork: latched key gets the primary fill
+        });
     }
 
     /** Set {@link #isLocked}. */

@@ -2,6 +2,7 @@ package com.termux.shared.terminal.io.extrakeys;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
@@ -25,6 +26,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
+import android.view.animation.OvershootInterpolator;
 import android.widget.Button;
 import android.widget.GridLayout;
 import android.widget.PopupWindow;
@@ -105,14 +107,19 @@ public final class ExtraKeysView extends GridLayout {
     }
 
 
-    /** Defines the default value for {@link #mButtonTextColor}. */
-    public static final int DEFAULT_BUTTON_TEXT_COLOR = 0xFFFFFFFF;
-    /** Defines the default value for {@link #mButtonActiveTextColor}. */
-    public static final int DEFAULT_BUTTON_ACTIVE_TEXT_COLOR = 0xFF80DEEA;
-    /** Defines the default value for {@link #mButtonBackgroundColor}. */
-    public static final int DEFAULT_BUTTON_BACKGROUND_COLOR = 0x00000000;
-    /** Defines the default value for {@link #mButtonActiveBackgroundColor}. */
-    public static final int DEFAULT_BUTTON_ACTIVE_BACKGROUND_COLOR = 0xFF7F7F7F;
+    // M3 fork: Material 3 dark roles from seed #6750A4 (material-color-utilities 0.3.0, SchemeTonalSpot).
+    /** Defines the default value for {@link #mButtonTextColor}. M3 on-surface. */
+    public static final int DEFAULT_BUTTON_TEXT_COLOR = 0xFFE6E0E9;
+    /** Defines the default value for {@link #mButtonActiveTextColor}. M3 on-primary (text on a latched key). */
+    public static final int DEFAULT_BUTTON_ACTIVE_TEXT_COLOR = 0xFF36275D;
+    /** Defines the default value for {@link #mButtonBackgroundColor}. M3 surface-container-high (resting key). */
+    public static final int DEFAULT_BUTTON_BACKGROUND_COLOR = 0xFF2B292F;
+    /** Defines the default value for {@link #mButtonActiveBackgroundColor}. M3 secondary-container (pressed key). */
+    public static final int DEFAULT_BUTTON_ACTIVE_BACKGROUND_COLOR = 0xFF4A4458;
+    /** M3 primary: fill of a latched special key (CTRL/ALT/SHIFT/FN). */
+    public static final int M3_KEY_LATCHED_COLOR = 0xFFCFBDFE;
+    /** M3 shape: resting corner, pressed corner (shape change as the state cue), and the gap around each key. */
+    private static final float M3_KEY_RADIUS_DP = 12f, M3_KEY_PRESSED_RADIUS_DP = 6f, M3_KEY_MARGIN_DP = 2f;
 
 
     /** Defines the minimum allowed duration in milliseconds for {@link #mLongPressTimeout}. */
@@ -389,9 +396,11 @@ public final class ExtraKeysView extends GridLayout {
                 }
 
                 button.setText(buttonInfo.getDisplay());
-                button.setTextColor(mButtonTextColor);
+                button.setTextColor(isLatched(buttonInfo) ? mButtonActiveTextColor : mButtonTextColor);
                 button.setAllCaps(mButtonTextAllCaps);
                 button.setPadding(0, 0, 0, 0);
+                button.setStateListAnimator(null); // drop the stock press elevation; M3 press = shape + scale
+                styleKey(button, false, isLatched(buttonInfo));
 
                 button.setOnClickListener(view -> {
                     performExtraKeyButtonHapticFeedback(view, buttonInfo, button);
@@ -401,7 +410,8 @@ public final class ExtraKeysView extends GridLayout {
                 button.setOnTouchListener((view, event) -> {
                     switch (event.getAction()) {
                         case MotionEvent.ACTION_DOWN:
-                            view.setBackgroundColor(mButtonActiveBackgroundColor);
+                            styleKey(view, true, isLatched(buttonInfo));
+                            pressAnimation(view, true);
                             // Start long press scheduled executors which will be stopped in next MotionEvent
                             startScheduledExecutors(view, buttonInfo, button);
                             return true;
@@ -411,23 +421,26 @@ public final class ExtraKeysView extends GridLayout {
                                 // Show popup on swipe up
                                 if (mPopupWindow == null && event.getY() < 0) {
                                     stopScheduledExecutors();
-                                    view.setBackgroundColor(mButtonBackgroundColor);
+                                    styleKey(view, false, isLatched(buttonInfo));
                                     showPopup(view, buttonInfo.getPopup());
                                 }
                                 if (mPopupWindow != null && event.getY() > 0) {
-                                    view.setBackgroundColor(mButtonActiveBackgroundColor);
+                                    styleKey(view, true, isLatched(buttonInfo));
                                     dismissPopup();
                                 }
                             }
                             return true;
 
                         case MotionEvent.ACTION_CANCEL:
-                            view.setBackgroundColor(mButtonBackgroundColor);
+                            styleKey(view, false, isLatched(buttonInfo));
+                            pressAnimation(view, false);
                             stopScheduledExecutors();
                             return true;
 
                         case MotionEvent.ACTION_UP:
-                            view.setBackgroundColor(mButtonBackgroundColor);
+                            // Resting look first; a click that latches CTRL/ALT restyles it via SpecialButtonState
+                            styleKey(view, false, isLatched(buttonInfo));
+                            pressAnimation(view, false);
                             stopScheduledExecutors();
                             // If ACTION_UP up was not from a repetitive key or was with a key with a popup button
                             if (mLongPressCount == 0 || mPopupWindow != null) {
@@ -451,7 +464,8 @@ public final class ExtraKeysView extends GridLayout {
                 LayoutParams param = new GridLayout.LayoutParams();
                 param.width = 0;
                 param.height = 0;
-                param.setMargins(0, 0, 0, 0);
+                int margin = (int) dp(M3_KEY_MARGIN_DP);
+                param.setMargins(margin, margin, margin, margin);
                 param.columnSpec = GridLayout.spec(col, GridLayout.FILL, 1.f);
                 param.rowSpec = GridLayout.spec(row, GridLayout.FILL, 1.f);
                 button.setLayoutParams(param);
@@ -581,7 +595,8 @@ public final class ExtraKeysView extends GridLayout {
         button.setMinimumHeight(0);
         button.setWidth(width);
         button.setHeight(height);
-        button.setBackgroundColor(mButtonActiveBackgroundColor);
+        button.setStateListAnimator(null);
+        styleKey(button, true, false);
         mPopupWindow = new PopupWindow(this);
         mPopupWindow.setWidth(LayoutParams.WRAP_CONTENT);
         mPopupWindow.setHeight(LayoutParams.WRAP_CONTENT);
@@ -598,6 +613,38 @@ public final class ExtraKeysView extends GridLayout {
     }
 
 
+
+    /**
+     * M3 fork: draw an extra key as a Material 3 rounded tonal key. Resting = surface-container-high,
+     * 12dp corners; pressed = secondary-container with corners tightened to 6dp; latched special
+     * key = primary.
+     */
+    public void styleKey(View view, boolean pressed, boolean latched) {
+        GradientDrawable shape = new GradientDrawable();
+        shape.setColor(latched ? M3_KEY_LATCHED_COLOR : pressed ? mButtonActiveBackgroundColor : mButtonBackgroundColor);
+        shape.setCornerRadius(dp(pressed ? M3_KEY_PRESSED_RADIUS_DP : M3_KEY_RADIUS_DP));
+        view.setBackground(shape);
+    }
+
+    /** M3 fork: whether this key is a special key (CTRL/ALT/SHIFT/FN) that is currently latched on. */
+    private boolean isLatched(ExtraKeyButton buttonInfo) {
+        if (!isSpecialButton(buttonInfo)) return false;
+        SpecialButtonState state = mSpecialButtons.get(SpecialButton.valueOf(buttonInfo.getKey()));
+        return state != null && state.isActive;
+    }
+
+    /** M3 fork: springy press: quick press-in, overshooting release (emphasized motion feel). */
+    private void pressAnimation(View view, boolean down) {
+        view.animate().cancel();
+        if (down)
+            view.animate().scaleX(0.92f).scaleY(0.92f).setDuration(70).setInterpolator(null).start();
+        else
+            view.animate().scaleX(1f).scaleY(1f).setDuration(240).setInterpolator(new OvershootInterpolator(3f)).start();
+    }
+
+    private float dp(float value) {
+        return value * getResources().getDisplayMetrics().density;
+    }
 
     /** Check whether a {@link ExtraKeyButton} is a {@link SpecialButton}. */
     public boolean isSpecialButton(ExtraKeyButton button) {
