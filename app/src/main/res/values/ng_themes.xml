@@ -1,0 +1,11 @@
+<resources>
+    <!-- NGTerminal: used only through ContextThemeWrapper (tab bar, its dialogs); TermuxActivity's theme is unchanged -->
+    <style name="Theme.NGTerminal.M3" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/ng_primary</item>
+        <item name="colorOnPrimary">@color/ng_on_primary</item>
+        <item name="colorSecondaryContainer">@color/ng_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/ng_on_secondary_container</item>
+        <item name="colorSurface">#141218</item>
+        <item name="colorOnSurface">@color/ng_on_surface</item>
+    </style>
+</resources>

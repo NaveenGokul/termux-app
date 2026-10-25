@@ -1,0 +1,11 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content" android:layout_height="36dp" android:layout_marginEnd="6dp"
+    android:background="@drawable/ng_tab_bg" android:gravity="center_vertical" android:orientation="horizontal"
+    android:paddingStart="14dp" android:paddingEnd="4dp">
+    <TextView android:id="@+id/ng_tab_title" android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:maxWidth="160dp" android:ellipsize="end" android:singleLine="true"
+        android:textColor="@color/ng_on_surface_variant" android:textSize="14sp"/>
+    <ImageButton android:id="@+id/ng_tab_close" android:layout_width="32dp" android:layout_height="32dp"
+        android:background="?attr/selectableItemBackgroundBorderless" android:src="@drawable/ic_ng_close"
+        android:tint="@color/ng_on_surface_variant"/>
+</LinearLayout>

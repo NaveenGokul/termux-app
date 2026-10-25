@@ -1,0 +1,11 @@
+<resources>
+    <!-- NGTerminal: M3 dark roles, seed #6750A4 (material-color-utilities 0.3.0, SchemeTonalSpot) -->
+    <color name="ng_surface_container">#211F26</color>
+    <color name="ng_surface_container_high">#2B292F</color>
+    <color name="ng_secondary_container">#4A4458</color>
+    <color name="ng_on_secondary_container">#E8DEF8</color>
+    <color name="ng_on_surface">#E6E0E9</color>
+    <color name="ng_on_surface_variant">#CAC4CF</color>
+    <color name="ng_primary">#CFBDFE</color>
+    <color name="ng_on_primary">#36275D</color>
+</resources>

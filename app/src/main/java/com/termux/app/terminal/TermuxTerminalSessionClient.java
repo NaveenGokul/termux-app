@@ -280,6 +280,7 @@ public class TermuxTerminalSessionClient extends TermuxTerminalSessionClientBase
         // be stale, like current session not selected or scrolled to.
         checkAndScrollToSession(session);
         updateBackgroundColor();
+        termuxSessionListNotifyUpdated(); // NGTerminal: the tab bar follows session switches
     }
 
     void notifyOfSessionChange() {

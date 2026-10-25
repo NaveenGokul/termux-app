@@ -60,6 +60,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
+
+import com.termux.app.ngterminal.TermuxSessionsTabBarController;
 import androidx.viewpager.widget.ViewPager;
 
 /**
@@ -127,6 +129,9 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
      * The termux sessions list controller.
      */
     TermuxSessionsListViewController mTermuxSessionListViewController;
+
+    /** NGTerminal: Pixel-style tab bar. */
+    TermuxSessionsTabBarController mTabBarController;
 
     /**
      * The {@link TermuxActivity} broadcast receiver for various things like terminal style configuration changes.
@@ -235,6 +240,11 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
         setNewSessionButtonView();
 
         setToggleKeyboardView();
+
+        // NGTerminal: Pixel-style tabs replace swiping the drawer; drawer code kept, opened only programmatically.
+        mTabBarController = new TermuxSessionsTabBarController(this);
+        mTabBarController.attach(findViewById(R.id.ng_tab_bar_host));
+        getDrawer().setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
 
         registerForContextMenu(mTerminalView);
 
@@ -359,6 +369,7 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
         mTermuxService = ((TermuxService.LocalBinder) service).service;
 
         setTermuxSessionsListView();
+        if (mTabBarController != null) mTabBarController.refresh();
 
         if (mTermuxService.isTermuxSessionsEmpty()) {
             if (mIsVisible) {
@@ -790,6 +801,7 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
 
     public void termuxSessionListNotifyUpdated() {
         mTermuxSessionListViewController.notifyDataSetChanged();
+        if (mTabBarController != null) mTabBarController.refresh();
     }
 
     public boolean isVisible() {

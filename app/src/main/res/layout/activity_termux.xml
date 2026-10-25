@@ -7,6 +7,12 @@
     android:orientation="vertical"
     android:fitsSystemWindows="true">
 
+    <!-- NGTerminal: Pixel-style tab bar (filled at runtime by TermuxSessionsTabBarController) -->
+    <FrameLayout
+        android:id="@+id/ng_tab_bar_host"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
     <RelativeLayout
         android:id="@+id/activity_termux_root_relative_layout"
         android:layout_width="match_parent"
