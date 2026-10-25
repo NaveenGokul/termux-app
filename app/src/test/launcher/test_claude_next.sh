@@ -77,5 +77,15 @@ check rootfs_wrong_package "1" "$(ensure_rootfs >/dev/null 2>&1; echo $?)"
 check rootfs_wrong_package_no_libs "0" "$(ls "$ROOT/lib" 2>/dev/null | wc -l | tr -d ' ')"
 unset -f curl
 
+# review I2: rootfs links are created only when missing, never written through a symlinked dir into Termux's own bin
+R2="$T/root2"; mkdir -p "$R2/lib" "$T/realbin"; for l in "${LIBS[@]}"; do echo lib > "$R2/lib/$l"; done
+echo REAL > "$T/realbin/sh"; ln -s "$T/realbin" "$R2/bin"
+check rootfs_keeps_existing_links "0|REAL" "$(ROOT=$R2; ensure_rootfs >/dev/null 2>&1; echo "$?|$([ -L "$T/realbin/sh" ] && echo LINK || cat "$T/realbin/sh")")"
+# review minor 4 (re-graded): an empty (truncated) lib counts as missing, so setup repairs it instead of trusting it
+R3="$T/root3"; mkdir -p "$R3/lib"; for l in "${LIBS[@]}"; do echo lib > "$R3/lib/$l"; done; : > "$R3/lib/libc.so.6"
+curl() { return 6; }
+check rootfs_empty_lib_is_repaired "1" "$(ROOT=$R3; ensure_rootfs >/dev/null 2>&1; echo $?)"
+unset -f curl
+
 echo "launcher tests: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

@@ -152,7 +152,7 @@ ensure_storage() {
 }
 ensure_rootfs() {
   local l d ok=1 missing=0
-  for l in "${LIBS[@]}"; do [ -f "$ROOT/lib/$l" ] || missing=1; done
+  for l in "${LIBS[@]}"; do [ -s "$ROOT/lib/$l" ] || missing=1; done   # empty = truncated: repair it
   if ((missing)); then
     echo "Setting up the Claude rootfs (glibc 2.43, 1.6 MB download)..."
     d=$(mktemp -d) || return 1
@@ -162,18 +162,23 @@ ensure_rootfs() {
     fi
     dpkg-deb -x "$d/libc6.deb" "$d/x" || ok=0
     mkdir -p "$ROOT/lib"
-    for l in "${LIBS[@]}"; do ((ok)) && { cp -L "$d/x/usr/lib/aarch64-linux-gnu/$l" "$ROOT/lib/$l" || ok=0; }; done
+    # copy to .new, then rename: an interrupted copy never leaves a half-written lib in place
+    for l in "${LIBS[@]}"; do
+      ((ok)) && { cp -L "$d/x/usr/lib/aarch64-linux-gnu/$l" "$ROOT/lib/$l.new" && mv -f "$ROOT/lib/$l.new" "$ROOT/lib/$l" || ok=0; }
+    done
     rm -rf "$d"
     ((ok)) || { echo "Could not unpack the glibc package." >&2; return 1; }
   fi
   # Mount points, interpreter symlinks and etc files (vault: Claude_Code_Latest_on_Termux, 2e).
   mkdir -p "$ROOT"/{bin,etc,usr/bin,tmp,system,apex,vendor,linkerconfig,storage,data,proc,dev,sys}
-  ln -sfn "$PREFIX/bin/env" "$ROOT/usr/bin/env"
-  ln -sfn "$PREFIX/bin/sh" "$ROOT/bin/sh"
-  ln -sfn "$PREFIX/bin/bash" "$ROOT/bin/bash"
+  # Only when missing: never rewrite (or write through a symlinked bin/ into Termux's own sh/bash) on every launch.
+  local P=/data/data/com.termux/files/usr
+  [ -e "$ROOT/usr/bin/env" ] || [ -L "$ROOT/usr/bin/env" ] || ln -s "$P/bin/env" "$ROOT/usr/bin/env"
+  [ -e "$ROOT/bin/sh" ] || [ -L "$ROOT/bin/sh" ] || ln -s "$P/bin/sh" "$ROOT/bin/sh"
+  [ -e "$ROOT/bin/bash" ] || [ -L "$ROOT/bin/bash" ] || ln -s "$P/bin/bash" "$ROOT/bin/bash"
   [ -f "$ROOT/etc/hosts" ] || printf '127.0.0.1 localhost\n::1 localhost ip6-localhost ip6-loopback\n' > "$ROOT/etc/hosts"
   [ -f "$ROOT/etc/passwd" ] || printf 'root:x:0:0:root:/root:/bin/sh\n%s:x:%s:%s::%s:%s\n' \
-    "$(id -un)" "$(id -u)" "$(id -g)" "$HOME" "$PREFIX/bin/bash" > "$ROOT/etc/passwd"
+    "$(id -un)" "$(id -u)" "$(id -g)" "$HOME" "$P/bin/bash" > "$ROOT/etc/passwd"
   [ -f "$ROOT/etc/group" ] || printf 'root:x:0:\n%s:x:%s:\n' "$(id -gn)" "$(id -g)" > "$ROOT/etc/group"
   [ -f "$ROOT/etc/resolv.conf" ] || printf 'nameserver 8.8.8.8\nnameserver 8.8.4.4\n' > "$ROOT/etc/resolv.conf"
   if [ ! -x "$ROOT/bin/open-url" ]; then

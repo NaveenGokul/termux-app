@@ -1213,7 +1213,7 @@ gh run list -R NaveenGokul/termux-app --branch github-releases/m3-extra-keys --l
 
 Watch each run ID with `gh run watch <id> --exit-status`. Expected:
 - Build success.
-- Unit tests success, with `TESTS EXECUTED: 347` (330 + `ClaudeKeyTest` 6 + `LauncherVersionTest` 6 + `LauncherInstallerTest` 5; `ExtraKeyIconsTest` stays 3 with one more assertion) and `launcher tests: 34 passed, 0 failed`.
+- Unit tests success, with `TESTS EXECUTED: 350`: 330, plus `ClaudeKeyTest` 7, `LauncherVersionTest` 6, `LauncherInstallerTest` 5 and `MinSdkGuardTest` 1, plus 1 more in `ExtraKeyIconsTest` (now 4). Also `launcher tests: 37 passed, 0 failed`. (Updated after the final review's fix pass.)
 
 If the count differs, find out why before going on.
 

@@ -14,14 +14,17 @@ public final class ClaudeKey {
 
     private ClaudeKey() {}
 
-    /** Idle = the tab's process is a shell with no child process, so typed text reaches its prompt. */
+    /** Idle = the tab's process is an interactive shell (options only, no script) with no child process, so typed text reaches its prompt. */
     public static boolean isIdleShell(File procRoot, int pid) {
         if (pid <= 0) return false;
         String cmd = ProcessTree.commandLine(procRoot, pid);
         if (cmd.isEmpty()) return false;
-        String exe = cmd.split(" ", 2)[0];
-        String name = exe.substring(exe.lastIndexOf('/') + 1);
+        String[] argv = cmd.split(" ");
+        String name = argv[0].substring(argv[0].lastIndexOf('/') + 1);
         if (name.startsWith("-")) name = name.substring(1);   // login shells show as "-bash"
-        return SHELLS.contains(name) && ProcessTree.childPids(procRoot, pid).isEmpty();
+        if (!SHELLS.contains(name)) return false;
+        for (int i = 1; i < argv.length; i++)                  // options only ("bash -l"): a script or -c command is no prompt
+            if (!argv[i].startsWith("-") || argv[i].equals("-c")) return false;
+        return ProcessTree.childPids(procRoot, pid).isEmpty();
     }
 }

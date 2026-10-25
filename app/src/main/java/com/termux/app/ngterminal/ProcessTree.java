@@ -1,9 +1,10 @@
 package com.termux.app.ngterminal;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -29,7 +30,7 @@ public final class ProcessTree {
     /** Fields after the last ')' are: state ppid ... (comm may contain spaces and parentheses). */
     private static int parentOf(File stat) {
         try {
-            String s = new String(Files.readAllBytes(stat.toPath()), StandardCharsets.UTF_8);
+            String s = read(stat);
             int close = s.lastIndexOf(')');
             if (close < 0) return -1;
             String[] f = s.substring(close + 1).trim().split("\\s+");
@@ -41,10 +42,16 @@ public final class ProcessTree {
 
     public static String commandLine(File procRoot, int pid) {
         try {
-            byte[] b = Files.readAllBytes(new File(new File(procRoot, String.valueOf(pid)), "cmdline").toPath());
-            return new String(b, StandardCharsets.UTF_8).replace('\0', ' ').trim();
+            return read(new File(new File(procRoot, String.valueOf(pid)), "cmdline")).replace('\0', ' ').trim();
         } catch (IOException ex) {
             return "";
+        }
+    }
+
+    /** java.io, not java.nio.file: minSdk 24 (Files/toPath are API 26 and crash Android 7). */
+    private static String read(File f) throws IOException {
+        try (InputStream in = new FileInputStream(f)) {
+            return new String(LauncherInstaller.readAll(in), StandardCharsets.UTF_8);
         }
     }
 }

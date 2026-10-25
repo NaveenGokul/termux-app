@@ -46,6 +46,15 @@ public class ClaudeKeyTest {
         assertFalse(ClaudeKey.isIdleShell(root, 100));
     }
 
+    /** Review I1: a script run by bash (widget / RUN_COMMAND) waiting in `read` has no child, but is not a prompt. */
+    @Test public void scriptRunningUnderBashIsNotIdle() throws Exception {
+        File root = tmp.newFolder("proc");
+        proc(root, 100, 50, "/data/data/com.termux/files/usr/bin/bash\0/data/data/com.termux/files/home/menu.sh\0");
+        proc(root, 101, 50, "bash\0-c\0read x\0");
+        assertFalse(ClaudeKey.isIdleShell(root, 100));
+        assertFalse(ClaudeKey.isIdleShell(root, 101));
+    }
+
     @Test public void finishedSessionIsNotIdle() throws Exception {
         File root = tmp.newFolder("proc");
         assertFalse(ClaudeKey.isIdleShell(root, 0));
