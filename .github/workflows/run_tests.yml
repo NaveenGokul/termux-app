@@ -22,6 +22,20 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: '17'
+    - name: Dependency insight (androidx.window)
+      run: |
+        ./gradlew -q :app:dependencyInsight --configuration debugRuntimeClasspath --dependency androidx.window || true
     - name: Execute tests
       run: |
         ./gradlew test
+    - name: Count tests executed
+      if: always()
+      run: |
+        # NGTerminal: green runs must show how many tests actually ran (lessons: count tests executed)
+        python3 - <<'PY'
+        import glob, xml.etree.ElementTree as ET
+        t=f=e=s=0
+        for x in glob.glob('**/build/test-results/**/*.xml', recursive=True):
+            r=ET.parse(x).getroot(); t+=int(r.get('tests',0)); f+=int(r.get('failures',0)); e+=int(r.get('errors',0)); s+=int(r.get('skipped',0))
+        print(f"TESTS EXECUTED: {t} (failures {f}, errors {e}, skipped {s})")
+        PY
