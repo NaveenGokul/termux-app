@@ -13,5 +13,10 @@
         <item name="android:windowBackground">#141218</item>
         <item name="android:statusBarColor">#141218</item>
         <item name="colorOnSurfaceVariant">@color/ng_on_surface_variant</item>
+        <!-- every switch row (stock Termux pages too) gets the M3 MaterialSwitch; wins over PreferenceThemeOverlay (applied with force=false) -->
+        <item name="switchPreferenceCompatStyle">@style/NGTerminal.Preference.SwitchPreferenceCompat</item>
+    </style>
+    <style name="NGTerminal.Preference.SwitchPreferenceCompat" parent="@style/Preference.SwitchPreferenceCompat.Material">
+        <item name="android:widgetLayout">@layout/ng_preference_switch</item>
     </style>
 </resources>

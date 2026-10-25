@@ -43,9 +43,8 @@ public class SettingsActivity extends AppCompatActivity {
                 if (!(f instanceof PreferenceFragmentCompat)) return;
                 PreferenceFragmentCompat pf = (PreferenceFragmentCompat) f;
                 pf.setDivider(null);
-                androidx.recyclerview.widget.RecyclerView.ItemAnimator ia = pf.getListView().getItemAnimator();
-                if (ia instanceof androidx.recyclerview.widget.SimpleItemAnimator)
-                    ((androidx.recyclerview.widget.SimpleItemAnimator) ia).setSupportsChangeAnimations(false);
+                // no item animator: when a switch's summary grows, the rows below used to slide over it; the switch animates itself
+                pf.getListView().setItemAnimator(null);
                 pf.getListView().addItemDecoration(new com.termux.app.ngterminal.PreferenceCardDecoration(SettingsActivity.this));
             }
         }, true);
