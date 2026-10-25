@@ -28,6 +28,8 @@ jobs:
     - name: Execute tests
       run: |
         ./gradlew test
+    - name: Launcher tests (claude-next)
+      run: bash app/src/test/launcher/test_claude_next.sh
     - name: Count tests executed
       if: always()
       run: |

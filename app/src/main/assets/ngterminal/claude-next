@@ -1,0 +1,279 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# ngterminal-launcher: 15
+# Claude Code (Opus 5.5) in a 2.8 MB minimal glibc rootfs.
+#
+# WHY THIS SHAPE:
+#  - Termux can't exec the official binary: it is ET_EXEC (non-PIE) and Android's
+#    /system/bin/linker64 rejects those ("unexpected e_type: 2"). Termux's own
+#    glibc ld.so refuses it too, so glibc-runner/grun cannot help.
+#  - proot's change-root (-r) loads it via the rootfs's own ld.so, bypassing
+#    Android's linker. Only glibc is needed for that, not a whole distro: the
+#    binary links just libc/libm/libdl/libpthread/librt + ld.so (6 files, 2.8 MB).
+#  - -r must be used, not -b: a bind alone still goes through Android's linker.
+#  - `env -u LD_PRELOAD` is REQUIRED: termux-exec's libtermux-exec.so rewrites
+#    exec paths and breaks every glibc binary with a misleading PHDR error.
+#
+# BINDS: the whole Termux files tree (home AND usr) plus the Android system dirs,
+# so Claude's Bash tool can run the real Termux toolchain (bash, git, node,
+# python3, sshpass, adb). Binding only ~/ leaves the rootfs with no shell at all.
+# /system /apex /vendor /linkerconfig give bionic binaries their linker + libs.
+# PATH and SHELL must be exported explicitly, or bash falls through to
+# /system/bin and every lookup fails with "Operation not permitted".
+#
+# ~/.claude and /storage/emulated/0 stay at their IDENTICAL paths, because
+# Claude keys history/memory/tasks by working-directory path.
+#
+# CAVEAT: LD_PRELOAD is unset, so termux-exec is inactive. #!/bin/sh, #!/bin/bash and
+# #!/usr/bin/env work only because ~/.cc-min has symlinks to Termux's copies.
+#
+# UPDATES: on an interactive launch this checks the npm registry and asks before updating.
+# The installed version is tracked in ~/.cc-min/VERSION. The old binary is deleted only after
+# the new one passes --version; every old version stays on npm if a rollback is ever needed.
+#
+# NGTERMINAL (v15): shipped inside the NGTerminal APK (assets/ngterminal/claude-next). The app
+# writes it to $PREFIX/bin when that file is missing or has an older marker (line 2), keeping the
+# old file in ~/.ngterminal/backup/. New in v15:
+#  - SETUP: an interactive launch first installs whatever a fresh phone is missing: proot & tools
+#    (pkg), the 6 glibc libs (Ubuntu libc6 2.43-2ubuntu2.4 from Launchpad, SHA-256 pinned - the same
+#    files as the proven rootfs), and the Claude binary (npm, sha512 checked, proven with --version).
+#  - --ng-pick (the Claude key): always ask where to open (root + sub-folders with session counts,
+#    or a new folder); a folder with sessions opens `claude --resume`, otherwise a new session.
+
+ROOT="$HOME/.cc-min"
+CLAUDE_DIR="/data/data/com.termux/files/home/.claude"
+
+export CLAUDE_CONFIG_DIR="$CLAUDE_DIR"
+export ANTHROPIC_MODEL="${ANTHROPIC_MODEL:-claude-opus-5-5[1m]}"
+export DISABLE_AUTOUPDATER=1   # updater would fetch the stock Linux build and break this
+export PATH="/data/data/com.termux/files/usr/bin:/data/data/com.termux/files/usr/bin/applets"
+export SHELL="/data/data/com.termux/files/usr/bin/bash"
+# glibc has no zoneinfo in the 2.8 MB rootfs and Termux ships no tzdata, so without TZ the
+# binary falls back to UTC (session expiry etc. shown 5h30m off). POSIX form needs no zone
+# files; India has no DST, so this is exact. An existing TZ in the environment wins.
+export TZ="${TZ:-IST-5:30}"
+# proot gives no uid map, so Claude can't verify a default socket dir and turns off cross-session
+# messaging (SendMessage/ListAgents). An explicit per-launch path in our own 0700 dir turns it back on.
+MSG_DIR="/data/data/com.termux/files/usr/tmp/cc-msg"
+
+# --kill-on-exit: when Claude exits, kill anything still traced by THIS proot (a runaway
+# `find /`, a stray dev server) - otherwise proot waits for it and the terminal hangs after /exit.
+# Each claude-next session is its own proot, so parallel sessions are never touched.
+PROOT=(env -u LD_PRELOAD proot --kill-on-exit
+  -r "$ROOT"
+  -b /data/data/com.termux/files:/data/data/com.termux/files
+  -b /data/data/com.termux/cache:/data/data/com.termux/cache
+  -b /system -b /apex -b /vendor -b /linkerconfig
+  -b /storage/emulated/0:/storage/emulated/0
+  -b /proc -b /dev -b /sys
+  -b "$PREFIX/etc/resolv.conf:/etc/resolv.conf"
+  -b "$PREFIX/tmp:/tmp")
+
+REG="https://registry.npmjs.org/@anthropic-ai/claude-code-linux-arm64"
+ask() { local a; read -r -p "$1 [y/N] " a; [[ $a == [yY]* ]]; }
+
+DL="/storage/emulated/0/Download"
+BASE="$DL/a_Claude_Things"
+PROJECTS="$BASE"   # the Claude key's picker root; sub-project B moves it to $DL/NGTerminal
+pick_dir() {   # 1 = stay here, then a_Claude_Things and its subfolders; cd into the choice
+  local n d dirs
+  shopt -s nullglob; dirs=("$PWD" "$BASE" "$BASE"/*/); shopt -u nullglob
+  echo "Outside Download - where should Claude open?"
+  printf '%3d. Continue in current directory (%s)\n' 1 "$PWD"
+  for ((n = 1; n < ${#dirs[@]}; n++)); do d=${dirs[n]%/}; printf '%3d. %s\n' $((n + 1)) "${d##*/}"; done
+  while read -r -p "Choose [1-${#dirs[@]}, Enter = 1, q = quit] " n; do
+    [[ -z $n ]] && n=1
+    [[ $n == [qQ] ]] && exit 0
+    [[ $n =~ ^[0-9]+$ ]] && (( n >= 1 && n <= ${#dirs[@]} )) && { cd "${dirs[n - 1]%/}" || exit 1; return; }
+  done
+  exit 0
+}
+
+# --- v15: the Claude key's picker -------------------------------------------------------------
+slug() { printf '%s' "${1//[^A-Za-z0-9]/-}"; }   # Claude Code's projects/ folder name for a path
+session_count() {   # dir -> number of saved Claude sessions for it
+  local f
+  shopt -s nullglob; f=("$CLAUDE_DIR/projects/$(slug "$1")"/*.jsonl); shopt -u nullglob
+  echo "${#f[@]}"
+}
+valid_name() { [[ -n $1 && $1 != */* ]]; }   # . and .. always exist: the -e check below rejects them
+pick_project() {   # root + sub-folders with session counts, or a new folder; cd into it. 1 = quit/EOF
+  local n d c dirs name
+  mkdir -p "$PROJECTS" || return 1
+  shopt -s nullglob; dirs=("$PROJECTS" "$PROJECTS"/*/); shopt -u nullglob
+  echo "Where should Claude open?   (${PROJECTS#/storage/emulated/0/})"
+  for ((n = 0; n < ${#dirs[@]}; n++)); do
+    d=${dirs[n]%/}; c=$(session_count "$d")
+    if ((c == 0)); then c=-; elif ((c == 1)); then c="1 session"; else c="$c sessions"; fi
+    printf '%3d. %-22s %s\n' $((n + 1)) "${d##*/}" "$c"
+  done
+  echo "  n. New folder..."
+  while read -r -p "Choose [1-${#dirs[@]}, n, Enter = 1, q = quit] " n; do
+    [[ -z $n ]] && n=1
+    [[ $n == [qQ] ]] && return 1
+    if [[ $n == [nN] ]]; then
+      read -r -p "Folder name: " name || return 1
+      if valid_name "$name" && [ ! -e "$PROJECTS/$name" ]; then
+        mkdir "$PROJECTS/$name" && cd "$PROJECTS/$name" && return 0
+      fi
+      echo "Can't use \"$name\": empty, contains /, or already exists."
+      continue
+    fi
+    [[ $n =~ ^[0-9]+$ ]] && (( n >= 1 && n <= ${#dirs[@]} )) && { cd "${dirs[n - 1]%/}" || return 1; return 0; }
+  done
+  return 1
+}
+resume_args() { (( $(session_count "$PWD") > 0 )) && echo --resume; return 0; }
+parse_args() {   # --ng-pick is the launcher's own flag: strip it into NG_PICK, the rest goes to Claude
+  local a
+  NG_PICK=0; ARGS=()
+  for a in "$@"; do if [[ $a == --ng-pick ]]; then NG_PICK=1; else ARGS+=("$a"); fi; done
+}
+
+# --- v15: first-run setup (every step is skipped when already done) ----------------------------
+LIBC_DEB_URL="https://launchpad.net/ubuntu/+archive/primary/+files/libc6_2.43-2ubuntu2.4_arm64.deb"
+LIBC_DEB_SHA256="1652597c8c3419b298d8a87dd3d8eea1fdc5a1abd9bccb5a66b928f92ec463c9"
+LIBS=(ld-linux-aarch64.so.1 libc.so.6 libm.so.6 libdl.so.2 libpthread.so.0 librt.so.1)
+offline() { echo "No connection - tap the Claude key again when online." >&2; return 1; }
+pkg_of() { case $1 in dpkg-deb) echo dpkg ;; openssl) echo openssl-tool ;; *) echo "$1" ;; esac; }
+ensure_tools() {
+  local c pkgs=()
+  for c in proot jq curl zstd openssl dpkg-deb; do command -v "$c" >/dev/null || pkgs+=("$(pkg_of "$c")"); done
+  ((${#pkgs[@]} == 0)) && return 0
+  echo "Installing ${pkgs[*]}..."
+  pkg install -y "${pkgs[@]}" || { echo "pkg install failed - check the connection, then tap the Claude key again." >&2; return 1; }
+}
+ensure_storage() {
+  [ -w "$DL" ] && return 0
+  echo "Allow storage access in the dialog (your project folders live in Download)."
+  termux-setup-storage
+  local i
+  for ((i = 0; i < 30; i++)); do [ -w "$DL" ] && return 0; sleep 1; done
+  echo "Storage access not granted - allow it, then tap the Claude key again." >&2; return 1
+}
+ensure_rootfs() {
+  local l d ok=1 missing=0
+  for l in "${LIBS[@]}"; do [ -f "$ROOT/lib/$l" ] || missing=1; done
+  if ((missing)); then
+    echo "Setting up the Claude rootfs (glibc 2.43, 1.6 MB download)..."
+    d=$(mktemp -d) || return 1
+    if ! curl -fsSL --max-time 120 -o "$d/libc6.deb" "$LIBC_DEB_URL"; then rm -rf "$d"; offline; return 1; fi
+    if [ "$(sha256sum "$d/libc6.deb" | cut -d' ' -f1)" != "$LIBC_DEB_SHA256" ]; then
+      rm -rf "$d"; echo "glibc package checksum mismatch - not installed." >&2; return 1
+    fi
+    dpkg-deb -x "$d/libc6.deb" "$d/x" || ok=0
+    mkdir -p "$ROOT/lib"
+    for l in "${LIBS[@]}"; do ((ok)) && { cp -L "$d/x/usr/lib/aarch64-linux-gnu/$l" "$ROOT/lib/$l" || ok=0; }; done
+    rm -rf "$d"
+    ((ok)) || { echo "Could not unpack the glibc package." >&2; return 1; }
+  fi
+  # Mount points, interpreter symlinks and etc files (vault: Claude_Code_Latest_on_Termux, 2e).
+  mkdir -p "$ROOT"/{bin,etc,usr/bin,tmp,system,apex,vendor,linkerconfig,storage,data,proc,dev,sys}
+  ln -sfn "$PREFIX/bin/env" "$ROOT/usr/bin/env"
+  ln -sfn "$PREFIX/bin/sh" "$ROOT/bin/sh"
+  ln -sfn "$PREFIX/bin/bash" "$ROOT/bin/bash"
+  [ -f "$ROOT/etc/hosts" ] || printf '127.0.0.1 localhost\n::1 localhost ip6-localhost ip6-loopback\n' > "$ROOT/etc/hosts"
+  [ -f "$ROOT/etc/passwd" ] || printf 'root:x:0:0:root:/root:/bin/sh\n%s:x:%s:%s::%s:%s\n' \
+    "$(id -un)" "$(id -u)" "$(id -g)" "$HOME" "$PREFIX/bin/bash" > "$ROOT/etc/passwd"
+  [ -f "$ROOT/etc/group" ] || printf 'root:x:0:\n%s:x:%s:\n' "$(id -gn)" "$(id -g)" > "$ROOT/etc/group"
+  [ -f "$ROOT/etc/resolv.conf" ] || printf 'nameserver 8.8.8.8\nnameserver 8.8.4.4\n' > "$ROOT/etc/resolv.conf"
+  if [ ! -x "$ROOT/bin/open-url" ]; then
+    cat > "$ROOT/bin/open-url" <<'EOF'
+#!/data/data/com.termux/files/usr/bin/bash
+# $BROWSER for claude-next: inside proot Android's `am` can't run, so hand the URL to the
+# launcher's native helper through its FIFO. It opens the URL with termux-open-url.
+[ -p "$CC_BROWSER_FIFO" ] || exit 1
+timeout 3 bash -c 'printf "%s\n" "$1" > "$CC_BROWSER_FIFO"' _ "$1"
+EOF
+    chmod 700 "$ROOT/bin/open-url"
+  fi
+}
+ensure_claude() {
+  [ -x "$ROOT/claude" ] && return 0
+  local v
+  v=$(curl -fs --max-time 10 "$REG/latest" | jq -r .version 2>/dev/null)
+  [[ -n $v && $v != null ]] || { offline; return 1; }
+  echo "Installing Claude Code $v..."
+  update "$v" && return 0
+  rm -rf "$ROOT/.update" "$ROOT/claude.new"; echo "Claude Code install failed." >&2; return 1
+}
+setup() {
+  ensure_tools && ensure_storage && ensure_rootfs && ensure_claude || return 1
+  [ -e "$PREFIX/bin/claude" ] || [ -L "$PREFIX/bin/claude" ] || ln -s claude-next "$PREFIX/bin/claude"
+}
+
+update() {   # version
+  local v=$1 d="$ROOT/.update" meta sri
+  rm -rf "$d"; mkdir -p "$d"
+  meta=$(curl -fs --max-time 10 "$REG/$v") || return 1
+  sri=$(jq -r .dist.integrity <<<"$meta")
+  curl -f#L -o "$d/pkg.tgz" "$(jq -r .dist.tarball <<<"$meta")" || return 1
+  [ "sha512-$(openssl dgst -sha512 -binary "$d/pkg.tgz" | base64 -w0)" = "$sri" ] \
+    || { echo "Checksum mismatch." >&2; return 1; }
+  # Termux has no gzip (tar -z fails); zstd reads gzip.
+  zstd -dcq --format=gzip "$d/pkg.tgz" | tar -x -C "$d" package/claude || return 1
+  chmod +x "$d/package/claude" && mv "$d/package/claude" "$ROOT/claude.new"
+  # Prove it runs here before swapping. mv keeps running sessions on the old inode.
+  [ "$("${PROOT[@]}" "$ROOT/claude.new" --version 2>/dev/null | cut -d' ' -f1)" = "$v" ] \
+    || { rm -f "$ROOT/claude.new"; echo "New binary failed --version." >&2; return 1; }
+  # Old binary stays in place until the new one is proven; unlinking it is safe for running sessions.
+  mv "$ROOT/claude.new" "$ROOT/claude"
+  echo "$v" > "$ROOT/VERSION"; rm -rf "$d"
+  echo "Updated to $v."
+}
+
+# Prompts only on an interactive terminal, so -p / piped / scripted runs never block.
+# Picker + update prompt only when this launch opens an interactive session: never for
+# --version/--help/-p, or a subcommand (list from `claude --help`, 2.1.310). Bug before v14:
+# `claude --version` showed the folder list first.
+opens_session() {
+  local a
+  for a in "$@"; do case "$a" in -v|--version|-h|--help|-p|--print) return 1 ;; esac; done
+  case "${1:-}" in
+    agents|attach|auth|auto-mode|doctor|gateway|import|install|logs|mcp|plugin|plugins|purge|\
+    respawn|rm|setup-token|stop|kill|ultrareview|update|upgrade) return 1 ;;
+  esac
+}
+
+[[ ${BASH_SOURCE[0]} != "$0" ]] && return 0   # sourced by the launcher tests: functions only
+
+mkdir -p -m 700 "$MSG_DIR"
+parse_args "$@"; set -- "${ARGS[@]}"
+if [ -t 0 ] && [ -t 1 ] && opens_session "$@"; then
+  setup || exit 1
+  if ((NG_PICK)); then
+    # The Claude key: always ask where; a folder with sessions resumes (Claude shows its own picker).
+    pick_project || exit 0
+    set -- $(resume_args) "$@"
+  else
+    # Projects live under Download; anywhere else shows the picker (1 = stay here).
+    case "$PWD" in
+      "$DL"|"$DL"/*) ;;
+      *) pick_dir ;;
+    esac
+  fi
+  current=$(cat "$ROOT/VERSION" 2>/dev/null)
+  latest=$(curl -fs --max-time 4 "$REG/latest" | jq -r .version 2>/dev/null)   # offline -> skipped
+  if [ -n "$latest" ] && [ "$latest" != "$current" ] \
+     && [ "$(printf '%s\n' "$current" "$latest" | sort -V | tail -1)" = "$latest" ] \
+     && ask "Claude Code update: ${current:-unknown} -> $latest. Update now?"; then
+    update "$latest" || { rm -rf "$ROOT/.update" "$ROOT/claude.new"
+      echo "Update failed - continuing with ${current:-current}." >&2; }
+  fi
+fi
+
+# Browser bridge: `am` (used by termux-open-url) can't run inside proot, so /login etc. couldn't
+# open a browser. Claude honours $BROWSER: it points at ~/.cc-min/bin/open-url, which writes the URL
+# to a FIFO read by this NATIVE helper (forked before proot starts, so it isn't traced).
+export CC_BROWSER_FIFO="$MSG_DIR/$$.browser" BROWSER="$ROOT/bin/open-url"
+rm -f "$CC_BROWSER_FIFO"; mkfifo -m 600 "$CC_BROWSER_FIFO"
+# Double fork: the helper must NOT be proot's child. proot only exits when it has no children
+# left (traced or not), and the helper waits for proot -> v10 deadlocked on exit (terminal hung).
+( (
+  exec 3<>"$CC_BROWSER_FIFO" </dev/null >/dev/null 2>&1   # read-write: no EOF between writers
+  while kill -0 $$ 2>/dev/null; do      # $$ becomes proot after exec; stop when it exits
+    read -r -t 5 url <&3 && [[ $url == http://* || $url == https://* ]] && termux-open-url "$url"
+  done
+  rm -f "$CC_BROWSER_FIFO"
+) & )
+
+exec "${PROOT[@]}" -w "$PWD" "$ROOT/claude" --messaging-socket-path "$MSG_DIR/$$.sock" "$@"
