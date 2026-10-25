@@ -422,6 +422,11 @@ public class TermuxTerminalSessionClient extends TermuxTerminalSessionClientBase
         mActivity.termuxSessionListNotifyUpdated();
     }
 
+    /** NGTerminal: the service notification changed; refresh keep-awake UI. */
+    public void onWakeLockStateChanged() {
+        mActivity.refreshWakeLockKey();
+    }
+
     public void checkAndScrollToSession(TerminalSession session) {
         if (!mActivity.isVisible()) return;
         TermuxService service = mActivity.getTermuxService();

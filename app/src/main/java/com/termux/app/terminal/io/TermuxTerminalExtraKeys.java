@@ -1,14 +1,18 @@
 package com.termux.app.terminal.io;
 
 import android.annotation.SuppressLint;
+import android.content.Intent;
 import android.view.Gravity;
 import android.view.View;
 
 import androidx.annotation.NonNull;
 import androidx.drawerlayout.widget.DrawerLayout;
 
+import com.termux.app.TermuxActivity;
+import com.termux.app.TermuxService;
 import com.termux.app.terminal.TermuxTerminalSessionClient;
 import com.termux.app.terminal.TermuxTerminalViewClient;
+import com.termux.shared.termux.TermuxConstants;
 import com.termux.shared.terminal.io.TerminalExtraKeys;
 import com.termux.view.TerminalView;
 
@@ -38,6 +42,15 @@ public class TermuxTerminalExtraKeys extends TerminalExtraKeys {
                 drawerLayout.closeDrawer(Gravity.LEFT);
             else
                 drawerLayout.openDrawer(Gravity.LEFT);
+        } else if ("WAKELOCK".equals(key)) {
+            // NGTerminal: same intents as the notification's "Acquire/Release wakelock" button
+            TermuxActivity activity = mTermuxTerminalViewClient.getActivity();
+            TermuxService service = activity.getTermuxService();
+            boolean held = service != null && service.isWakeLockHeld();   // null before bind: treat as not held
+            Intent intent = new Intent(activity, TermuxService.class).setAction(held
+                ? TermuxConstants.TERMUX_APP.TERMUX_SERVICE.ACTION_WAKE_UNLOCK
+                : TermuxConstants.TERMUX_APP.TERMUX_SERVICE.ACTION_WAKE_LOCK);
+            activity.startService(intent);
         } else if ("PASTE".equals(key)) {
             if(mTermuxTerminalSessionClient != null)
                 mTermuxTerminalSessionClient.onPasteTextFromClipboard(null);

@@ -289,6 +289,8 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
             mTermuxTerminalViewClient.onResume();
 
         isOnResumeAfterOnCreate = false;
+
+        refreshWakeLockKey(); // NGTerminal
     }
 
     @Override
@@ -390,6 +392,8 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
 
         // Update the {@link TerminalSession} and {@link TerminalEmulator} clients.
         mTermuxService.setTermuxTerminalSessionClient(mTermuxTerminalSessionClient);
+
+        refreshWakeLockKey(); // NGTerminal
     }
 
     @Override
@@ -777,6 +781,12 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
         return getTerminalToolbarViewPager().getCurrentItem() == 1;
     }
 
+
+    /** NGTerminal: show the WAKELOCK key latched while the service wakelock is held. */
+    public void refreshWakeLockKey() {
+        if (mExtraKeysView == null) return;
+        mExtraKeysView.setKeyLatched("WAKELOCK", mTermuxService != null && mTermuxService.isWakeLockHeld());
+    }
 
     public void termuxSessionListNotifyUpdated() {
         mTermuxSessionListViewController.notifyDataSetChanged();

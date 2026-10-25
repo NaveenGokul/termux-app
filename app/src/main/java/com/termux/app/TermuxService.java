@@ -780,6 +780,13 @@ public final class TermuxService extends Service implements TermuxTask.TermuxTas
         } else {
             ((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).notify(TermuxConstants.TERMUX_APP_NOTIFICATION_ID, buildNotification());
         }
+        // NGTerminal: let the activity refresh the keep-awake key (same thread as the notification update)
+        if (mTermuxTerminalSessionClient != null) mTermuxTerminalSessionClient.onWakeLockStateChanged();
+    }
+
+    /** NGTerminal: whether the service wakelock is currently held (read-only). */
+    public synchronized boolean isWakeLockHeld() {
+        return mWakeLock != null;
     }
 
 

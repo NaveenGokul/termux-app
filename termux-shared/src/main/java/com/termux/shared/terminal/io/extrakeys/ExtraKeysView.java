@@ -151,6 +151,10 @@ public final class ExtraKeysView extends GridLayout {
      * the one returned by {@link #getDefaultSpecialButtons(ExtraKeysView)}. */
     private Map<SpecialButton, SpecialButtonState> mSpecialButtons;
 
+    /** NGTerminal: latched state for non-special keys (e.g. WAKELOCK), and the buttons per key name. */
+    private final Map<String, Boolean> mExternalLatched = new HashMap<>();
+    private final Map<String, List<Button>> mButtonsByKey = new HashMap<>();
+
     /** The keys for the {@link SpecialButton} added to {@link #mSpecialButtons}. This is automatically
      * set when the call to {@link #setSpecialButtons(Map)} is made. */
     private Set<String> mSpecialButtonsKeys;
@@ -383,6 +387,7 @@ public final class ExtraKeysView extends GridLayout {
             state.buttons = new ArrayList<>();
 
         removeAllViews();
+        mButtonsByKey.clear();
 
         ExtraKeyButton[][] buttons = extraKeysInfo.getMatrix();
 
@@ -483,6 +488,9 @@ public final class ExtraKeysView extends GridLayout {
                 button.setLayoutParams(param);
 
                 addView(button);
+                List<Button> sameKey = mButtonsByKey.get(buttonInfo.getKey());
+                if (sameKey == null) { sameKey = new ArrayList<>(); mButtonsByKey.put(buttonInfo.getKey(), sameKey); }
+                sameKey.add(button);
             }
         }
     }
@@ -652,9 +660,22 @@ public final class ExtraKeysView extends GridLayout {
 
     /** M3 fork: whether this key is a special key (CTRL/ALT/SHIFT/FN) that is currently latched on. */
     private boolean isLatched(ExtraKeyButton buttonInfo) {
+        Boolean external = mExternalLatched.get(buttonInfo.getKey());
+        if (external != null) return external;
         if (!isSpecialButton(buttonInfo)) return false;
         SpecialButtonState state = mSpecialButtons.get(SpecialButton.valueOf(buttonInfo.getKey()));
         return state != null && state.isActive;
+    }
+
+    /** NGTerminal: show a non-special key (e.g. WAKELOCK) as latched/unlatched. No-op if the key isn't in the bar. */
+    public void setKeyLatched(String key, boolean latched) {
+        mExternalLatched.put(key, latched);
+        List<Button> buttons = mButtonsByKey.get(key);
+        if (buttons == null) return;
+        for (Button b : buttons) {
+            if (b.getTag(R.id.ng_key_icon) == null) b.setTextColor(latched ? mButtonActiveTextColor : mButtonTextColor);
+            styleKey(b, false, latched);
+        }
     }
 
     /** M3 fork: springy press: quick press-in, overshooting release (emphasized motion feel). */
