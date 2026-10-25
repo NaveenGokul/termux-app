@@ -76,13 +76,33 @@ public final class TermuxSessionsTabBarController {
     private void close(TerminalSession s) {
         int pid = s.getPid();
         List<Integer> children = pid > 0 ? ProcessTree.childPids(new File("/proc"), pid) : Collections.<Integer>emptyList();
-        if (children.isEmpty()) { mActivity.getTermuxTerminalSessionClient().removeFinishedSession(s); return; }
+        if (children.isEmpty()) { closeNow(s); return; }
         String cmd = ProcessTree.commandLine(new File("/proc"), children.get(0));
         new MaterialAlertDialogBuilder(mThemed)
             .setTitle("Close tab?")
             .setMessage((cmd.isEmpty() ? "A program" : cmd) + " is still running. Close tab?")
             .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton("Close", (d, w) -> mActivity.getTermuxTerminalSessionClient().removeFinishedSession(s))
+            .setPositiveButton("Close", (d, w) -> closeNow(s))
             .show();
+    }
+
+    /**
+     * Termux's own two steps, combined: "Kill process" (SIGKILL the shell, as the context menu does), then remove the
+     * session once it has exited. TermuxSession.finish() ignores sessions that are still running, so removal must
+     * wait for the exit; Termux may already have auto-removed it (exit 0/130), hence the index check.
+     */
+    private void closeNow(TerminalSession s) {
+        s.finishIfRunning();
+        removeWhenExited(s, 0);
+    }
+
+    private void removeWhenExited(TerminalSession s, int attempt) {
+        if (s.isRunning() && attempt < 30) {                       // up to ~3 s for the process to die
+            mTabs.postDelayed(() -> removeWhenExited(s, attempt + 1), 100);
+            return;
+        }
+        TermuxService service = mActivity.getTermuxService();
+        if (service != null && service.getIndexOfSession(s) >= 0)
+            mActivity.getTermuxTerminalSessionClient().removeFinishedSession(s);
     }
 }
