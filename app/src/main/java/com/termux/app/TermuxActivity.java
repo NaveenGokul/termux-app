@@ -61,6 +61,13 @@ import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 
+import android.view.ContextThemeWrapper;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import java.io.File;
+import java.io.IOException;
+import com.termux.app.ngterminal.ClaudeKey;
+import com.termux.app.ngterminal.ClaudeLauncher;
+import com.termux.app.ngterminal.LauncherInstaller;
 import com.termux.app.ngterminal.TermuxSessionsTabBarController;
 import androidx.viewpager.widget.ViewPager;
 
@@ -795,6 +802,35 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
         return getTerminalToolbarViewPager().getCurrentItem() == 1;
     }
 
+
+    /** NGTerminal: the Claude extra key. Installs/updates the launcher, then types it into an idle tab or offers a new tab. */
+    public void onClaudeKey() {
+        try {
+            if (ClaudeLauncher.ensureInstalled(this) == LauncherInstaller.Result.UPGRADED)
+                showToast("Claude launcher updated - old copy in ~/.ngterminal/backup", true);
+        } catch (IOException e) {
+            Logger.logStackTraceWithMessage(LOG_TAG, "Claude launcher install failed", e);
+            showToast("Could not install the Claude launcher: " + e.getMessage(), true);
+            return;
+        }
+        TerminalSession current = getCurrentSession();
+        if (current != null && ClaudeKey.isIdleShell(new File("/proc"), current.getPid())) {
+            current.write(ClaudeKey.COMMAND);
+            return;
+        }
+        new MaterialAlertDialogBuilder(new ContextThemeWrapper(this, R.style.Theme_NGTerminal_M3))
+            .setTitle("Claude")
+            .setMessage("Open a new Claude session?")
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton("Open", (d, w) -> {
+                TerminalSession before = getCurrentSession();
+                mTermuxTerminalSessionClient.addNewSession(false, null);
+                TerminalSession created = getCurrentSession();
+                // Session limit (8) or no service: no new tab -> type nothing (never into the busy tab)
+                if (created != null && created != before) created.write(ClaudeKey.COMMAND);
+            })
+            .show();
+    }
 
     /** NGTerminal: show the WAKELOCK key latched while the service wakelock is held. */
     public void refreshWakeLockKey() {

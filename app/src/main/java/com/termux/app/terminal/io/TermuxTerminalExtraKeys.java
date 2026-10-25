@@ -42,6 +42,9 @@ public class TermuxTerminalExtraKeys extends TerminalExtraKeys {
                 drawerLayout.closeDrawer(Gravity.LEFT);
             else
                 drawerLayout.openDrawer(Gravity.LEFT);
+        } else if ("CLAUDE".equals(key)) {
+            // NGTerminal: set up / open Claude (launcher picker; asks first when the tab is busy)
+            mTermuxTerminalViewClient.getActivity().onClaudeKey();
         } else if ("WAKELOCK".equals(key)) {
             // NGTerminal: same intents as the notification's "Acquire/Release wakelock" button
             TermuxActivity activity = mTermuxTerminalViewClient.getActivity();

@@ -43,7 +43,7 @@ android {
         versionCode 1002 // held at upstream 0.118.3's code: the official APK can be reinstalled over this to roll back
         // NGTerminal (M3 fork) build ng.8 on upstream 0.118.3. Keep nothing after the closing quote:
         // CI reads this line with the regex '\s+versionName "([^"]+)"$'.
-        versionName "0.118.3-ng.9"
+        versionName "0.118.3-ng.10"
 
         if (appVersionName) versionName = appVersionName
         validateVersionName(versionName)
