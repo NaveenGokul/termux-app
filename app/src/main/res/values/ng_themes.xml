@@ -8,4 +8,10 @@
         <item name="colorSurface">#141218</item>
         <item name="colorOnSurface">@color/ng_on_surface</item>
     </style>
+    <!-- NGTerminal: Pixel-style settings (M3 dark, collapsing large title) -->
+    <style name="Theme.NGTerminal.Settings" parent="Theme.NGTerminal.M3">
+        <item name="android:windowBackground">#141218</item>
+        <item name="android:statusBarColor">#141218</item>
+        <item name="colorOnSurfaceVariant">@color/ng_on_surface_variant</item>
+    </style>
 </resources>

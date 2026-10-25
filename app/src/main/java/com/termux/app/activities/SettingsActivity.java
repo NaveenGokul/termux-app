@@ -31,6 +31,10 @@ public class SettingsActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings);
+        // NGTerminal: M3 collapsing large title
+        com.google.android.material.appbar.MaterialToolbar toolbar = findViewById(R.id.ng_settings_toolbar);
+        setSupportActionBar(toolbar);
+        setTitle(R.string.title_activity_termux_settings);
         if (savedInstanceState == null) {
             getSupportFragmentManager()
                 .beginTransaction()
@@ -63,7 +67,42 @@ public class SettingsActivity extends AppCompatActivity {
             configureTermuxTaskerPreference(context);
             configureTermuxWidgetPreference(context);
             configureAboutPreference(context);
+            configureNGTerminalPreferences(context);
             configureDonatePreference(context);
+        }
+
+        /** NGTerminal: Keep awake switch, installed-packages summary, and the NGTerminal version on About. */
+        private void configureNGTerminalPreferences(@NonNull Context context) {
+            androidx.preference.SwitchPreferenceCompat keepAwake = findPreference("ng_keep_awake");
+            if (keepAwake != null) {
+                keepAwake.setOnPreferenceChangeListener((p, newValue) -> {
+                    android.content.Intent i = new android.content.Intent(context, com.termux.app.TermuxService.class)
+                        .setAction(Boolean.TRUE.equals(newValue)
+                            ? com.termux.shared.termux.TermuxConstants.TERMUX_APP.TERMUX_SERVICE.ACTION_WAKE_LOCK
+                            : com.termux.shared.termux.TermuxConstants.TERMUX_APP.TERMUX_SERVICE.ACTION_WAKE_UNLOCK);
+                    context.startService(i);
+                    return true;
+                });
+            }
+            Preference packages = findPreference("ng_packages");
+            if (packages != null) {
+                new Thread(() -> {
+                    java.util.List<com.termux.app.ngterminal.DpkgStatusParser.Pkg> list =
+                        com.termux.app.ngterminal.PackagesFragment.load();
+                    long kib = 0; for (com.termux.app.ngterminal.DpkgStatusParser.Pkg p : list) kib += p.sizeKiB;
+                    String summary = list.size() + " packages · " + com.termux.app.ngterminal.SizeFormat.human(kib * 1024);
+                    if (getActivity() != null) getActivity().runOnUiThread(() -> packages.setSummary(summary));
+                }).start();
+            }
+            Preference about = findPreference("about");
+            if (about != null) about.setSummary("NGTerminal " + com.termux.BuildConfig.VERSION_NAME + " · based on Termux 0.118.3");
+        }
+
+        @Override
+        public void onResume() {
+            super.onResume();
+            androidx.preference.SwitchPreferenceCompat keepAwake = findPreference("ng_keep_awake");
+            if (keepAwake != null) keepAwake.setChecked(com.termux.app.TermuxService.isWakeLockHeldStatic());
         }
 
         private void configureTermuxAPIPreference(@NonNull Context context) {

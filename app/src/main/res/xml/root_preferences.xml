@@ -1,7 +1,24 @@
 <PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
 
+    <!-- NGTerminal rows -->
+    <SwitchPreferenceCompat
+        app:key="ng_keep_awake"
+        app:title="Keep awake"
+        app:summary="Hold Termux's wakelock so sessions keep running with the screen off"
+        app:icon="@drawable/ic_ng_coffee"
+        app:persistent="false"
+        app:widgetLayout="@layout/ng_preference_switch"/>
+
+    <Preference
+        app:key="ng_packages"
+        app:title="Installed packages"
+        app:icon="@drawable/ic_ng_package_2"
+        app:persistent="false"
+        app:fragment="com.termux.app.ngterminal.PackagesFragment"/>
+
     <Preference
         app:key="termux"
+        app:icon="@drawable/ic_ng_terminal"
         app:title="@string/termux_preferences_title"
         app:summary="@string/termux_preferences_summary"
         app:fragment="com.termux.app.fragments.settings.TermuxPreferencesFragment"/>
@@ -36,6 +53,7 @@
 
     <Preference
         app:key="about"
+        app:icon="@drawable/ic_ng_info"
         app:title="@string/about_preference_title"
         app:persistent="false"/>
     <!-- app:layout="@layout/preference_markdown_text" -->

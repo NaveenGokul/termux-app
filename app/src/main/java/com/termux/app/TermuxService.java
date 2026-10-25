@@ -118,6 +118,7 @@ public final class TermuxService extends Service implements TermuxTask.TermuxTas
     @Override
     public void onCreate() {
         Logger.logVerbose(LOG_TAG, "onCreate");
+        sInstance = this; // NGTerminal: for isWakeLockHeldStatic()
         runStartForeground();
     }
 
@@ -162,6 +163,7 @@ public final class TermuxService extends Service implements TermuxTask.TermuxTas
 
     @Override
     public void onDestroy() {
+        sInstance = null; // NGTerminal
         Logger.logVerbose(LOG_TAG, "onDestroy");
 
         TermuxShellUtils.clearTermuxTMPDIR(true);
@@ -782,6 +784,15 @@ public final class TermuxService extends Service implements TermuxTask.TermuxTas
         }
         // NGTerminal: let the activity refresh the keep-awake key (same thread as the notification update)
         if (mTermuxTerminalSessionClient != null) mTermuxTerminalSessionClient.onWakeLockStateChanged();
+    }
+
+    /** NGTerminal: the running service, for UI outside the activity binding (settings). */
+    private static volatile TermuxService sInstance;
+
+    /** NGTerminal: wakelock state for UI outside the activity binding (settings). */
+    public static boolean isWakeLockHeldStatic() {
+        TermuxService s = sInstance;
+        return s != null && s.isWakeLockHeld();
     }
 
     /** NGTerminal: whether the service wakelock is currently held (read-only). */
