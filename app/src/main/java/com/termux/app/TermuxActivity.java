@@ -592,7 +592,10 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
         if (text == null || text.isEmpty()) return;
         if (mLastToast != null) mLastToast.cancel();
         mLastToast = Toast.makeText(TermuxActivity.this, text, longDuration ? Toast.LENGTH_LONG : Toast.LENGTH_SHORT);
-        mLastToast.setGravity(Gravity.TOP, 0, 0);
+        // NGTerminal: show below the tab bar, not over it
+        View tabBarHost = findViewById(R.id.ng_tab_bar_host);
+        int yOffset = tabBarHost == null ? 0 : tabBarHost.getHeight() + Math.round(8 * getResources().getDisplayMetrics().density);
+        mLastToast.setGravity(Gravity.TOP, 0, yOffset);
         mLastToast.show();
     }
 

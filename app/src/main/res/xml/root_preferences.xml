@@ -1,7 +1,7 @@
 <PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <!-- NGTerminal: three card groups (categories without titles); every key is unchanged -->
-    <PreferenceCategory app:key="ng_group_ngterminal" app:iconSpaceReserved="false">
+    <PreferenceCategory app:key="ng_group_ngterminal" app:iconSpaceReserved="false" app:layout="@layout/ng_preference_category_gap">
     <SwitchPreferenceCompat
         app:key="ng_keep_awake"
         app:title="Keep awake"
@@ -19,7 +19,7 @@
 
     </PreferenceCategory>
 
-    <PreferenceCategory app:key="ng_group_termux" app:iconSpaceReserved="false">
+    <PreferenceCategory app:key="ng_group_termux" app:iconSpaceReserved="false" app:layout="@layout/ng_preference_category_gap">
     <Preference
         app:key="termux"
         app:icon="@drawable/ic_ng_set_termux"
@@ -61,7 +61,7 @@
 
     </PreferenceCategory>
 
-    <PreferenceCategory app:key="ng_group_about" app:iconSpaceReserved="false">
+    <PreferenceCategory app:key="ng_group_about" app:iconSpaceReserved="false" app:layout="@layout/ng_preference_category_gap">
     <Preference
         app:key="about"
         app:icon="@drawable/ic_ng_set_about"

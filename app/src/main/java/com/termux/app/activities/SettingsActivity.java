@@ -43,6 +43,9 @@ public class SettingsActivity extends AppCompatActivity {
                 if (!(f instanceof PreferenceFragmentCompat)) return;
                 PreferenceFragmentCompat pf = (PreferenceFragmentCompat) f;
                 pf.setDivider(null);
+                androidx.recyclerview.widget.RecyclerView.ItemAnimator ia = pf.getListView().getItemAnimator();
+                if (ia instanceof androidx.recyclerview.widget.SimpleItemAnimator)
+                    ((androidx.recyclerview.widget.SimpleItemAnimator) ia).setSupportsChangeAnimations(false);
                 pf.getListView().addItemDecoration(new com.termux.app.ngterminal.PreferenceCardDecoration(SettingsActivity.this));
             }
         }, true);
@@ -78,8 +81,8 @@ public class SettingsActivity extends AppCompatActivity {
             configureTermuxTaskerPreference(context);
             configureTermuxWidgetPreference(context);
             configureAboutPreference(context);
-            configureNGTerminalPreferences(context);
             configureDonatePreference(context);
+            configureNGTerminalPreferences(context); // NGTerminal: after donate, so it can hide it
         }
 
         /** NGTerminal: Keep awake switch, installed-packages summary, and the NGTerminal version on About. */
@@ -105,6 +108,8 @@ public class SettingsActivity extends AppCompatActivity {
                     if (getActivity() != null) getActivity().runOnUiThread(() -> packages.setSummary(summary));
                 }).start();
             }
+            Preference donate = findPreference("donate");
+            if (donate != null) donate.setVisible(false); // NGTerminal: no donate row (user request)
             Preference about = findPreference("about");
             if (about != null) about.setSummary("NGTerminal " + com.termux.BuildConfig.VERSION_NAME + " · based on Termux 0.118.3");
         }

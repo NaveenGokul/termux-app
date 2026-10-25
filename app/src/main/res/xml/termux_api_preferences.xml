@@ -2,6 +2,7 @@
 
     <Preference
         app:title="@string/termux_debugging_preferences_title"
+        app:icon="@drawable/ic_ng_set_debugging"
         app:summary="@string/termux_debugging_preferences_summary"
         app:fragment="com.termux.app.fragments.settings.termux_api.DebuggingPreferencesFragment"/>
 
